@@ -1,7 +1,11 @@
 import urllib3
 import re
+import os
+import sys
 
-# url_in = 'https://www.thefire.org/report-88-of-universities-restrict-expression-and-online-classes-are-especially-dangerous-for-student-speech/'
+page_url_in = 'https://www.thefire.org/report-88-of-universities-restrict-expression-and-online-classes-are-especially-dangerous-for-student-speech/'
+url_in = 'https://www.thefire.org/resources/spotlight/reports/spotlight-on-speech-codes-2021/'
+
 # http = urllib3.PoolManager()
 # response = http.request('GET', url_in)
 
@@ -10,29 +14,91 @@ import re
 # data = response.data.decode("utf-8")
 # stat = response.status
 
+
+def log_err(data):
+    '''
+        Writes the data <dict> to
+        the errorlog
+    '''
+    report_info = str.encode(data['url'] + ',' + data['pageurl'] + ',' +
+        data['emsg'] + '\n')
+    fin = os.open('report_error.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
+    os.write(fin, report_info)
+    os.close(fin)
+
+def log_404(data):
+    '''
+        Writes the data <dict> to
+        the 404 log
+    '''
+    report_info = str.encode(data['url'] + ',' + data['pageurl'] + ',' +
+        str(data['code']) + '\n')
+    fin = os.open('report_404.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
+    os.write(fin, report_info)
+    os.close(fin)
+
+
 def get_urls(html_page):
     href_pat = r'href=\".*?\"'
     results = re.findall(href_pat, html_page)
-    return results
+    print(results)
 
-def get_response(url_in):
+
+def get_response(url_data):
+    '''
+        Gets the http status from the
+        url_data <dict>. Returns the response
+        data <dict>.
+    '''
     http = urllib3.PoolManager()
+    response_data = {
+        'pageurl': url_data['page'],
+        'url': url_data['link'],
+        'code': None,
+        'err': 0,
+        'emsg': ''
+    }
+
     try:
-        response = http.request('GET', url_in)
+        response = http.request('GET', url_data['link'])
         stat = response.status
+        response_data['code'] = stat
+    except Exception as LocationValueError:
+        response_data['err'] = 1
+        response_data['emsg'] = LocationValueError.args[0]
 
-        if stat == 404:
-            # write to 404 flat file function
-            print('%s,%s,%s' % (url_in, stat, '<page visited>'))
-        else:
-            pass
-    except Exception as e:
-        # send to error log (write to flat file function)
-        print('%s,%s,%s' % (url_in, e, '<page visited>'))
+    return response_data;
 
-get_response('https://www.thefire.org/get-involved/')
+
+def main():
+    url_data = {
+        'page': page_url_in,
+        'link': url_in
+    }
+
+    resp_info = get_response(url_data)
+    print(resp_info)
+
+    if resp_info['code'] == 404:
+        log_404(resp_info)
+    elif resp_info['err'] == 1:
+        log_err(resp_info)
+    else:
+        pass
+
+
+
+if __name__ == '__main__':
+    main()
+
+
+
+# get_urls(url_in)
 
 # new_url = url_in.replace('href="', '').strip('"')
+
+
+
 
 '''
 FIRE site map home: https://www.thefire.org/sitemap_index.xml
@@ -64,5 +130,5 @@ use this regex to get a link from a page: href=".*?"
 - log errors to an error log flatfile as well
 
 the report flatfile should look like:
-<url fetched>, <response code (404)>, <current page>
+<url fetched>, <current page>, <response code (404)>
 '''
