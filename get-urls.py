@@ -1,18 +1,49 @@
+#!/usr/bin/python3
+
 import urllib3
 import re
 import os
 import sys
+import untangle
 
-page_url_in = 'https://www.thefire.org/report-88-of-universities-restrict-expression-and-online-classes-are-especially-dangerous-for-student-speech/'
-url_in = 'https://www.thefire.org/resources/spotlight/reports/spotlight-on-speech-codes-2021/'
+settings = {
+    'main sitemap url': 'ref/sitemap-home.xml', # 1
+    'url set sample': 'ref/sitemap-url-set.xml' # 2
+}
 
-# http = urllib3.PoolManager()
-# response = http.request('GET', url_in)
 
-# response is in bytes
-# converet to a string with decode
-# data = response.data.decode("utf-8")
-# stat = response.status
+def parse_xml_links(url, struct):
+    '''
+        Takes in xml site map and
+        xml structure and
+        returns a list of urls
+    '''
+    urls = []
+    obj = untangle.parse(url)
+
+    if (struct == 1):
+        page = obj.sitemapindex.sitemap
+    else:
+        page = obj.urlset.url
+
+    for addr in page:
+        urls.append(addr.children[0].cdata)
+
+    return urls
+
+
+# def parse_xml_url_set(url):
+#     urls = []
+#     obj = untangle.parse(url)
+#     page = obj.urlset.url
+
+#     for addr in page:
+#         # urls.append(url.children[0].cdata)
+#         print(addr.children[0].cdata)
+
+#     # print(page.url[30].children[0].cdata)
+
+#     # return urls
 
 
 def log_err(data):
@@ -26,6 +57,7 @@ def log_err(data):
     os.write(fin, report_info)
     os.close(fin)
 
+
 def log_404(data):
     '''
         Writes the data <dict> to
@@ -38,10 +70,28 @@ def log_404(data):
     os.close(fin)
 
 
-def get_urls(html_page):
-    href_pat = r'href=\".*?\"'
-    results = re.findall(href_pat, html_page)
-    print(results)
+# def get_urls(html_page):
+#     '''
+#         Scans a page and extracts
+#         all of the urls from href
+#         attributes. Returns a list
+#         of urls from the page or nothing.
+#     '''
+#     # check for a bad status
+#     page_data = get_response(html_page)
+
+
+
+
+#     if stat != 404:
+#         href_pat = r'href=\".*?\"'
+#         results = re.findall(href_pat, html_page)
+#     else:
+#         # report a 404 or error
+#         if stat == 404:
+#             pass
+#         else:
+#             pass
 
 
 def get_response(url_data):
@@ -70,21 +120,51 @@ def get_response(url_data):
     return response_data;
 
 
-def main():
-    url_data = {
-        'page': page_url_in,
-        'link': url_in
-    }
-
-    resp_info = get_response(url_data)
-    print(resp_info)
-
+def check_response(resp_info):
     if resp_info['code'] == 404:
-        log_404(resp_info)
+        response_type = '404'
     elif resp_info['err'] == 1:
-        log_err(resp_info)
+        response_type = 'err'
     else:
-        pass
+        response_type = 'ok'
+
+    return response_type
+
+
+def main():
+    # parse the main xml sitemap and store the links
+    site_links = parse_xml_links(settings['main sitemap url'], 1)
+    url_set = parse_xml_links(settings['url set sample'], 2)
+    print(site_links)
+
+
+
+
+
+    # page_url_in = 'https://www.thefire.org/report-88-of-universities-restrict-expression-and-online-classes-are-especially-dangerous-for-student-speech/'
+    # url_in = 'https://www.thefire.org/resources/spotlight/reports/spotlight-on-speech-codes-2021/'
+
+    # # scan each one at a time and write to report
+
+    # # move onto the next page
+
+
+    # url_data = {
+    #     'page': page_url_in,
+    #     'link': url_in
+    # }
+
+    # resp_info = get_response(url_data)
+    # response_type = check_response(resp_info)
+    # print(resp_info)
+
+
+    # if response_type == '404':
+    #     log_404(resp_info)
+    # elif response_type == 'err':
+    #     log_err(resp_info)
+    # else:
+    #     pass
 
 
 
@@ -93,7 +173,6 @@ if __name__ == '__main__':
 
 
 
-# get_urls(url_in)
 
 # new_url = url_in.replace('href="', '').strip('"')
 
