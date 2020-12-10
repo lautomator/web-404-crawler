@@ -6,10 +6,8 @@ import os
 import sys
 import untangle
 
-settings = {
-    'main sitemap url': 'ref/sitemap-home.xml', # 1
-    'url set sample': 'ref/sitemap-url-set.xml' # 2
-}
+# set the main sitemap url here
+main_sitemap = 'ref/sitemap-home.xml' # 1
 
 
 def parse_xml_links(url, struct):
@@ -30,21 +28,6 @@ def parse_xml_links(url, struct):
         urls.append(addr.children[0].cdata)
 
     return urls
-
-
-# def parse_xml_url_set(url):
-#     urls = []
-#     obj = untangle.parse(url)
-#     page = obj.urlset.url
-
-#     for addr in page:
-#         # urls.append(url.children[0].cdata)
-#         print(addr.children[0].cdata)
-
-#     # print(page.url[30].children[0].cdata)
-
-#     # return urls
-
 
 def log_err(data):
     '''
@@ -133,15 +116,18 @@ def check_response(resp_info):
 
 def main():
     # parse the main xml sitemap and store the links
-    site_links = parse_xml_links(settings['main sitemap url'], 1)
-    url_set = parse_xml_links(settings['url set sample'], 2)
-    print(site_links)
+    site_links = parse_xml_links(main_sitemap, 1)
+    url_set = parse_xml_links(site_links[0], 2)
 
+    page_url_in = url_set[0]
 
+    print(page_url_in)
 
+# TODO get urls from page
+# parse the page and check each url
+# write to the report or error report or pass (good url)
+#####
 
-
-    # page_url_in = 'https://www.thefire.org/report-88-of-universities-restrict-expression-and-online-classes-are-especially-dangerous-for-student-speech/'
     # url_in = 'https://www.thefire.org/resources/spotlight/reports/spotlight-on-speech-codes-2021/'
 
     # # scan each one at a time and write to report
