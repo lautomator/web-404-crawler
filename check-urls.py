@@ -8,6 +8,7 @@ import untangle
 
 # set the main sitemap url here
 main_sitemap = 'ref/sitemap-home.xml'
+host_domain = 'https://thefire.org'
 
 
 def parse_xml_links(url, struct):
@@ -38,7 +39,7 @@ def log_err(data):
     '''
     report_info = str.encode(data['url'] + ',' + data['pageurl'] + ',' +
         data['emsg'] + '\n')
-    fin = os.open('report_error.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
+    fin = os.open('report-error.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
     os.write(fin, report_info)
     os.close(fin)
 
@@ -50,33 +51,56 @@ def log_404(data):
     '''
     report_info = str.encode(data['url'] + ',' + data['pageurl'] + ',' +
         str(data['code']) + '\n')
-    fin = os.open('report_404.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
+    fin = os.open('report-404.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
     os.write(fin, report_info)
     os.close(fin)
 
 
-# def get_urls(html_page):
-#     '''
-#         Scans a page and extracts
-#         all of the urls from href
-#         attributes. Returns a list
-#         of urls from the page or nothing.
-#     '''
-#     # check for a bad status
-#     page_data = get_response(html_page)
+def log_activity(data):
+    '''
+        Records all activity
+    '''
+    report_info = str.encode(data['url'] + ',' + data['pageurl'] + ',' +
+        str(data['code']) + ',' + data['emsg'] + '\n')
+    fin = os.open('activity.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
+    os.write(fin, report_info)
+    os.close(fin)
 
 
+def get_urls(html_page):
+    '''
+        Scans a page and extracts
+        all of the urls from href
+        attributes. Returns a list
+        of urls from the page or
+        an empty list.
+    '''
+    page_links = []
 
+    # scrape the page and convert byte data to <str>
+    http = urllib3.PoolManager()
+    response = http.request('GET', html_page)
+    page_data = response.data.decode("utf-8")
 
-#     if stat != 404:
-#         href_pat = r'href=\".*?\"'
-#         results = re.findall(href_pat, html_page)
-#     else:
-#         # report a 404 or error
-#         if stat == 404:
-#             pass
-#         else:
-#             pass
+    # find all href attributes and save to results
+    href_pat = r'href=\".*?\"'
+    results = re.findall(href_pat, page_data)
+    link = ''
+
+    # remove the href tag and quotes and
+    # add protocol and host info for
+    # links that begin with '/'
+    for att in results:
+        link = att.replace('href="', '').strip('"')
+        temp = ''
+
+        if link[0] == '/':
+            temp = link
+            link = host_domain + temp
+
+        page_links.append(link)
+
+    return page_links
 
 
 def get_response(url_data):
@@ -121,38 +145,41 @@ def main():
     site_links = parse_xml_links(main_sitemap, 1)
     url_set = parse_xml_links(site_links[0], 2)
 
-    page_url_in = url_set[0]
+    # page_url_in = url_set[50]
+    page_url_in = 'https://www.thefire.org/house-resolution-calls-for-global-abolishment-of-blasphemy-laws-u-s-colleges-with-overseas-campuses-should-take-note/' # test
 
-    print(page_url_in)
 
 # TODO get urls from page
 # parse the page and check each url
 # write to the report or error report or pass (good url)
 #####
 
-    # url_in = 'https://www.thefire.org/resources/spotlight/reports/spotlight-on-speech-codes-2021/'
+# TODO put in functio to clear reports every time the script starts.
 
-    # # scan each one at a time and write to report
+    page_links = get_urls(page_url_in)
 
-    # # move onto the next page
+    # this will be a loop and turn into
+    # a function later
+    url_data = {
+        'page': page_url_in,
+        'link': ''
+    }
+
+    for link in page_links:
+        url_data['link'] = link
+        resp_info = get_response(url_data)
+        # response_type = check_response(resp_info)
+
+        log_activity(resp_info)
 
 
-    # url_data = {
-    #     'page': page_url_in,
-    #     'link': url_in
-    # }
 
-    # resp_info = get_response(url_data)
-    # response_type = check_response(resp_info)
-    # print(resp_info)
-
-
-    # if response_type == '404':
-    #     log_404(resp_info)
-    # elif response_type == 'err':
-    #     log_err(resp_info)
-    # else:
-    #     pass
+        # if response_type == '404':
+        #     log_404(resp_info)
+        # elif response_type == 'err':
+        #     log_err(resp_info)
+        # else:
+        #     pass
 
 
 

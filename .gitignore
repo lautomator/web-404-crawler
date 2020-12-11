@@ -1,4 +1,5 @@
 .DS_Store
-report_404.log
-report_error.log
+report-404.log
+report-error.log
+activity.log
 ref
