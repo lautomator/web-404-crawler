@@ -9,6 +9,24 @@ import untangle
 # set the main sitemap url here
 main_sitemap = 'ref/sitemap-home.xml'
 host_domain = 'https://thefire.org'
+all_logs = ['activity.log', 'report-404.log', 'report-error.log']
+
+def clear_logs(logs):
+    '''
+        Clear all of the logs
+        on the initial run.
+    '''
+    for log in logs:
+        try:
+            if os.stat(log).st_size > 0:
+                # log exists and contains info
+                os.truncate(log, 0)
+            else:
+                # the log exists and is empty: no action needed
+                return False
+        except Exception as FileNotFoundError:
+            # no logs were found: they will be created when needed
+            return False
 
 
 def parse_xml_links(url, struct):
@@ -37,11 +55,14 @@ def log_err(data):
         Writes the data <dict> to
         the errorlog
     '''
-    report_info = str.encode(data['url'] + ',' + data['pageurl'] + ',' +
-        data['emsg'] + '\n')
-    fin = os.open('report-error.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
-    os.write(fin, report_info)
-    os.close(fin)
+    if data:
+        report_info = str.encode(data['url'] + ',' + data['pageurl'] + ',' +
+            data['emsg'] + '\n')
+        fin = os.open('report-error.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
+        os.write(fin, report_info)
+        os.close(fin)
+    else:
+        return False
 
 
 def log_404(data):
@@ -49,22 +70,28 @@ def log_404(data):
         Writes the data <dict> to
         the 404 log
     '''
-    report_info = str.encode(data['url'] + ',' + data['pageurl'] + ',' +
-        str(data['code']) + '\n')
-    fin = os.open('report-404.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
-    os.write(fin, report_info)
-    os.close(fin)
+    if data:
+        report_info = str.encode(data['url'] + ',' + data['pageurl'] + ',' +
+            str(data['code']) + '\n')
+        fin = os.open('report-404.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
+        os.write(fin, report_info)
+        os.close(fin)
+    else:
+        return False
 
 
 def log_activity(data):
     '''
         Records all activity
     '''
-    report_info = str.encode(data['url'] + ',' + data['pageurl'] + ',' +
-        str(data['code']) + ',' + data['emsg'] + '\n')
-    fin = os.open('activity.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
-    os.write(fin, report_info)
-    os.close(fin)
+    if data:
+        report_info = str.encode(data['url'] + ',' + data['pageurl'] + ',' +
+            str(data['code']) + ',' + data['emsg'] + '\n')
+        fin = os.open('activity.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
+        os.write(fin, report_info)
+        os.close(fin)
+    else:
+        return False
 
 
 def get_urls(html_page):
@@ -141,20 +168,20 @@ def check_response(resp_info):
 
 
 def main():
+
+    print('=> clearing logs ...')
+    clear_logs(all_logs)
+
+    print('=> parsing xml ...')
+
     # parse the main xml sitemap and store the links
     site_links = parse_xml_links(main_sitemap, 1)
     url_set = parse_xml_links(site_links[0], 2)
 
-    # page_url_in = url_set[50]
-    page_url_in = 'https://www.thefire.org/house-resolution-calls-for-global-abolishment-of-blasphemy-laws-u-s-colleges-with-overseas-campuses-should-take-note/' # test
+    page_url_in = url_set[1]
 
-
-# TODO get urls from page
-# parse the page and check each url
-# write to the report or error report or pass (good url)
-#####
-
-# TODO put in functio to clear reports every time the script starts.
+    print('=> [parsing xml complete]')
+    print('=> getting page links ...')
 
     page_links = get_urls(page_url_in)
 
@@ -165,21 +192,28 @@ def main():
         'link': ''
     }
 
-    for link in page_links:
-        url_data['link'] = link
-        resp_info = get_response(url_data)
-        # response_type = check_response(resp_info)
+    if page_links:
 
-        log_activity(resp_info)
+        print('=> looking for 404s ...')
 
+        for link in page_links:
+            url_data['link'] = link
+            resp_info = get_response(url_data)
+            # response_type = check_response(resp_info)
 
+            # log_activity(resp_info)
+            # print(resp_info)
 
-        # if response_type == '404':
-        #     log_404(resp_info)
-        # elif response_type == 'err':
-        #     log_err(resp_info)
-        # else:
-        #     pass
+            # if response_type == '404':
+            #     log_404(resp_info)
+            # elif response_type == 'err':
+            #     log_err(resp_info)
+            # else:
+            #     pass
+    else:
+        print('=> no page links found')
+
+    print('=> done. See the reports for more info.')
 
 
 
@@ -187,9 +221,6 @@ if __name__ == '__main__':
     main()
 
 
-
-
-# new_url = url_in.replace('href="', '').strip('"')
 
 
 
