@@ -1,7 +1,17 @@
 # -*- coding: utf-8 -*-
 
 """
-TBA
+This script is configured to specifically look for
+404s on any website given and xml site map. The structure
+of the xml and other parameters are defined in settings
+below the module imports.
+
+The script will write any 404 responses to the
+report-404.log. Any response errors are reported to
+the report-error.log. The activity log is used for
+development or can be configured to be used in
+tandem with the other logs. all logs are created
+when the script needs them.
 """
 
 import re
@@ -9,10 +19,12 @@ import os
 import urllib3
 import untangle
 
-# set the main sitemap url here
+# ================== USER SETTINGS
 MAIN_SITEMAP = 'ref/sitemap-home.xml'
 HOST_DOMAIN = 'https://thefire.org'
 all_logs = ['activity.log', 'report-404.log', 'report-error.log']
+# END USER SETTINGS ==============
+
 
 def clear_logs(logs):
     '''
