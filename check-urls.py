@@ -7,7 +7,7 @@ import sys
 import untangle
 
 # set the main sitemap url here
-main_sitemap = 'ref/sitemap-home.xml' # 1
+main_sitemap = 'ref/sitemap-home.xml'
 
 
 def parse_xml_links(url, struct):
@@ -20,8 +20,10 @@ def parse_xml_links(url, struct):
     obj = untangle.parse(url)
 
     if (struct == 1):
+        # 1
         page = obj.sitemapindex.sitemap
     else:
+        # 2
         page = obj.urlset.url
 
     for addr in page:
