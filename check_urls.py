@@ -1,14 +1,17 @@
-#!/usr/bin/python3
+# -*- coding: utf-8 -*-
 
-import urllib3
+"""
+TBA
+"""
+
 import re
 import os
-import sys
+import urllib3
 import untangle
 
 # set the main sitemap url here
-main_sitemap = 'ref/sitemap-home.xml'
-host_domain = 'https://thefire.org'
+MAIN_SITEMAP = 'ref/sitemap-home.xml'
+HOST_DOMAIN = 'https://thefire.org'
 all_logs = ['activity.log', 'report-404.log', 'report-error.log']
 
 def clear_logs(logs):
@@ -22,11 +25,10 @@ def clear_logs(logs):
                 # log exists and contains info
                 os.truncate(log, 0)
             else:
-                # the log exists and is empty: no action needed
-                return False
-        except Exception as FileNotFoundError:
+                pass
+        except FileNotFoundError:
             # no logs were found: they will be created when needed
-            return False
+            print('=> File not found:', log)
 
 
 def parse_xml_links(url, struct):
@@ -38,7 +40,7 @@ def parse_xml_links(url, struct):
     urls = []
     obj = untangle.parse(url)
 
-    if (struct == 1):
+    if struct == 1:
         # 1
         page = obj.sitemapindex.sitemap
     else:
@@ -62,7 +64,7 @@ def log_err(data):
         os.write(fin, report_info)
         os.close(fin)
     else:
-        return False
+        pass
 
 
 def log_404(data):
@@ -77,7 +79,7 @@ def log_404(data):
         os.write(fin, report_info)
         os.close(fin)
     else:
-        return False
+        pass
 
 
 def log_activity(data):
@@ -91,7 +93,7 @@ def log_activity(data):
         os.write(fin, report_info)
         os.close(fin)
     else:
-        return False
+        pass
 
 
 def get_urls(html_page):
@@ -123,7 +125,7 @@ def get_urls(html_page):
 
         if link[0] == '/':
             temp = link
-            link = host_domain + temp
+            link = HOST_DOMAIN + temp
 
         page_links.append(link)
 
@@ -153,10 +155,15 @@ def get_response(url_data):
         response_data['err'] = 1
         response_data['emsg'] = LocationValueError.args[0]
 
-    return response_data;
+    return response_data
 
 
 def check_response(resp_info):
+    '''
+        Returns the response type
+        as a string. Only interested
+        in 404s or errors mostly.
+    '''
     if resp_info['code'] == 404:
         response_type = '404'
     elif resp_info['err'] == 1:
@@ -168,6 +175,10 @@ def check_response(resp_info):
 
 
 def main():
+    '''
+        See the settings at the top
+        of the script.
+    '''
 
     print('=> clearing logs ...')
     clear_logs(all_logs)
@@ -175,7 +186,7 @@ def main():
     print('=> parsing xml ...')
 
     # parse the main xml sitemap and store the links
-    site_links = parse_xml_links(main_sitemap, 1)
+    site_links = parse_xml_links(MAIN_SITEMAP, 1)
     url_set = parse_xml_links(site_links[0], 2)
 
     page_url_in = url_set[1]
@@ -199,61 +210,19 @@ def main():
         for link in page_links:
             url_data['link'] = link
             resp_info = get_response(url_data)
-            # response_type = check_response(resp_info)
+            response_type = check_response(resp_info)
 
-            # log_activity(resp_info)
-            # print(resp_info)
-
-            # if response_type == '404':
-            #     log_404(resp_info)
-            # elif response_type == 'err':
-            #     log_err(resp_info)
-            # else:
-            #     pass
+            if response_type == '404':
+                log_404(resp_info)
+            elif response_type == 'err':
+                log_err(resp_info)
+            else:
+                pass
     else:
         print('=> no page links found')
 
     print('=> done. See the reports for more info.')
 
 
-
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
-'''
-FIRE site map home: https://www.thefire.org/sitemap_index.xml
-
-website crawler to get 404s
-
-run something like python url-crawler <arg>
-<arg> is the site map page like: https://www.thefire.org/post-sitemap1.xml
-
-use this regex to get a link from a page: href=".*?"
-
-- create flatfile to store report
-
-- parse the xml site map to get each page url
-    - get an http response for each url found on the page (one at a time) -- use urllib3
-        - parse the page from the url on the site map
-        - find a url on the page and get a response
-            - if the response == 404
-                log the url visited (page from the site map)
-                    - write to the flatfile
-                log the url fetched from the response
-                    - write to the flatfile
-                log the response code
-                    - write to the flatfile
-            - else move onto the next url
-        - if no urls found, move to the next page
-    - if no more page urls exit the script
-
-- log errors to an error log flatfile as well
-
-the report flatfile should look like:
-<url fetched>, <current page>, <response code (404)>
-'''
