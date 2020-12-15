@@ -72,7 +72,7 @@ def log_err(data):
         the errorlog
     '''
     if data:
-        report_info = str.encode(data['url'] + ',' + data['pageurl'] + ',' +
+        report_info = str.encode(data['url'] + '\t' + data['pageurl'] + '\t' +
             data['emsg'] + '\n')
         fin = os.open('report-error.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
         os.write(fin, report_info)
@@ -87,7 +87,7 @@ def log_404(data):
         the 404 log
     '''
     if data:
-        report_info = str.encode(data['url'] + ',' + data['pageurl'] + ',' +
+        report_info = str.encode(data['url'] + '\t' + data['pageurl'] + '\t' +
             str(data['code']) + '\n')
         fin = os.open('report-404.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
         os.write(fin, report_info)
@@ -101,8 +101,8 @@ def log_activity(data):
         Records all activity
     '''
     if data:
-        report_info = str.encode(data['url'] + ',' + data['pageurl'] + ',' +
-            str(data['code']) + ',' + data['emsg'] + '\n')
+        report_info = str.encode(data['url'] + '\t' + data['pageurl'] + '\t' +
+            str(data['code']) + '\t' + data['emsg'] + '\n')
         fin = os.open('activity.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
         os.write(fin, report_info)
         os.close(fin)
@@ -205,7 +205,7 @@ def main():
         'link': ''
     }
 
-    print('=> Clearing logs ...')
+    print('=> Cleared existing logs.')
     clear_logs(all_logs)
 
     print('=> Parsing xml ...')
