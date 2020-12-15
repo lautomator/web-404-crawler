@@ -10,8 +10,9 @@ The script will write any 404 responses to the
 report-404.log. Any response errors are reported to
 the report-error.log. The activity log is used for
 development or can be configured to be used in
-tandem with the other logs. all logs are created
-when the script needs them.
+tandem with the other logs. All logs are created
+when the script needs them. The logs are cleared
+each time the script is called.
 """
 
 import re
@@ -20,10 +21,11 @@ import urllib3
 import untangle
 
 # ================== USER SETTINGS
-MAIN_SITEMAP = 'ref/sitemap-home.xml'
-HOST_DOMAIN = 'https://thefire.org'
+# MAIN_SITEMAP = 'ref/sitemap-home.xml' #TODO this will com from uinput
+HOST_DOMAIN = 'https://thefire.org' #TODO this will com from parsing uinput
 all_logs = ['activity.log', 'report-404.log', 'report-error.log']
 # END USER SETTINGS ==============
+# MAIN_SITEMAP = input('Enter the full address of the sitemap: ')
 
 
 def clear_logs(logs):
