@@ -17,11 +17,12 @@ each time the script is called.
 
 import re
 import os
+import sys
 import urllib3
 import untangle
 
 # ================== USER SETTINGS
-# MAIN_SITEMAP = 'ref/sitemap-home.xml' #TODO this will com from uinput
+MAIN_SITEMAP = 'ref/sitemap-url-set.xml' #TODO this will com from uinput
 HOST_DOMAIN = 'https://thefire.org' #TODO this will com from parsing uinput
 all_logs = ['activity.log', 'report-404.log', 'report-error.log']
 # END USER SETTINGS ==============
@@ -45,26 +46,25 @@ def clear_logs(logs):
             print('=> File not found:', log)
 
 
-def parse_xml_links(url, struct):
+def parse_xml_links(url):
     '''
         Takes in xml site map and
-        xml structure and
-        returns a list of urls
+        and returns a list of urls
     '''
     urls = []
-    obj = untangle.parse(url)
 
-    if struct == 1:
-        # 1
-        page = obj.sitemapindex.sitemap
-    else:
-        # 2
-        page = obj.urlset.url
+    try:
+        obj = untangle.parse(url)
+    except Exception as e:
+        print('! [err] the link submitted to the xml parser is invalid.', e)
+        sys.exit()
 
+    page = obj.urlset.url
     for addr in page:
         urls.append(addr.children[0].cdata)
 
     return urls
+
 
 def log_err(data):
     '''
@@ -140,6 +140,10 @@ def get_urls(html_page):
         if link[0] == '/':
             temp = link
             link = HOST_DOMAIN + temp
+        elif len(link) == 1 and link[0] == '#':
+            link = HOST_DOMAIN + '/'
+        else:
+            pass
 
         page_links.append(link)
 
@@ -165,9 +169,9 @@ def get_response(url_data):
         response = http.request('GET', url_data['link'])
         stat = response.status
         response_data['code'] = stat
-    except Exception as LocationValueError:
+    except Exception as e:
         response_data['err'] = 1
-        response_data['emsg'] = LocationValueError.args[0]
+        response_data['emsg'] = str(e)
 
     return response_data
 
@@ -190,52 +194,59 @@ def check_response(resp_info):
 
 def main():
     '''
-        See the settings at the top
-        of the script.
+        Calls the functions to parse
+        the site map and get responses
+        from the returnsed urls. 404s
+        and errors are logged to reports.
     '''
 
-    print('=> clearing logs ...')
-    clear_logs(all_logs)
-
-    print('=> parsing xml ...')
-
-    # parse the main xml sitemap and store the links
-    site_links = parse_xml_links(MAIN_SITEMAP, 1)
-    url_set = parse_xml_links(site_links[0], 2)
-
-    page_url_in = url_set[1]
-
-    print('=> [parsing xml complete]')
-    print('=> getting page links ...')
-
-    page_links = get_urls(page_url_in)
-
-    # this will be a loop and turn into
-    # a function later
     url_data = {
-        'page': page_url_in,
+        'page': '',
         'link': ''
     }
 
-    if page_links:
+    print('=> Clearing logs ...')
+    clear_logs(all_logs)
 
-        print('=> looking for 404s ...')
+    print('=> Parsing xml ...')
+    print('=> Getting page links ...')
 
-        for link in page_links:
-            url_data['link'] = link
-            resp_info = get_response(url_data)
-            response_type = check_response(resp_info)
+    # parse the xml sitemap and store the links
+    url_set = parse_xml_links(MAIN_SITEMAP)
 
-            if response_type == '404':
-                log_404(resp_info)
-            elif response_type == 'err':
-                log_err(resp_info)
+    print('=> Parsing xml complete')
+    print('=> Looking for 404s (this may take a while) ...')
+
+    if url_set:
+        # check each url extracted from the sitemap
+        for page_url_in in url_set:
+            print('checking:', page_url_in)
+
+            # get any urls from the page
+            page_links = get_urls(page_url_in)
+            print(len(page_links), 'links found\n...')
+
+            if page_links:
+                # check each link on a page
+                for link in page_links:
+                    url_data['page'] = page_url_in
+                    url_data['link'] = link
+                    resp_info = get_response(url_data)
+                    response_type = check_response(resp_info)
+
+                    if response_type == '404':
+                        log_404(resp_info)
+                    elif response_type == 'err':
+                        log_err(resp_info)
+                    else:
+                        pass
             else:
-                pass
+                print(page_url_in, '=> no links on the page.')
     else:
-        print('=> no page links found')
+        print('! No urls found in this sitemap.')
+        sys.exit()
 
-    print('=> done. See the reports for more info.')
+    print('=> Done. See the reports for more info.')
 
 
 if __name__ == '__main__':
