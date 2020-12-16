@@ -18,7 +18,7 @@ import untangle
 
 # ================== USER SETTINGS
 MAIN_SITEMAP = '' # enter sitemap url here
-HOST_DOMAIN = '' # enter site domain here
+HOST_DOMAIN = '' # enter site domain here without the trailing slash
 LOG_FILENAME = 'report-404.log'
 REPORT_SETTINGS = {
     'report_errors': False, # will report 404s and errors
