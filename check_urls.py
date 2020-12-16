@@ -2,16 +2,11 @@
 
 """
 This script is configured to specifically look for
-404s on any website given and xml site map. The structure
-of the xml and other parameters are defined in settings
-below the module imports.
+404s on any website given and xml sitemap. The sitemap
+url and other settings can be defined where indicated.
 
-The script will write any 404 responses to the
-report-404.log. Any response errors are reported to
-the report-error.log. The activity log is used for
-development or can be configured to be used in
-tandem with the other logs. All logs are created
-when the script needs them. The logs are cleared
+The script will write any 404 responses, errors, or
+activity to the a log. The log is cleared
 each time the script is called.
 """
 
@@ -22,28 +17,51 @@ import urllib3
 import untangle
 
 # ================== USER SETTINGS
-MAIN_SITEMAP = 'ref/sitemap-url-set.xml' #TODO this will com from uinput
-HOST_DOMAIN = 'https://thefire.org' #TODO this will com from parsing uinput
-all_logs = ['activity.log', 'report-404.log', 'report-error.log']
+MAIN_SITEMAP = 'https://www.thefire.org/post-sitemap30.xml'
+HOST_DOMAIN = 'https://thefire.org'
+LOG_FILENAME = 'report-404.log'
+REPORT_SETTINGS = {
+    'report_errors': False, # will report 404s and errors
+    'report_activity': False # will report everything
+}
 # END USER SETTINGS ==============
-# MAIN_SITEMAP = input('Enter the full address of the sitemap: ')
 
 
-def clear_logs(logs):
+def clear_log(fname):
     '''
-        Clear all of the logs
-        on the initial run.
+        Clear the log on the initial run.
     '''
-    for log in logs:
-        try:
-            if os.stat(log).st_size > 0:
-                # log exists and contains info
-                os.truncate(log, 0)
-            else:
-                pass
-        except FileNotFoundError:
-            # no logs were found: they will be created when needed
-            print('=> File not found:', log)
+    try:
+        if os.stat(fname).st_size > 0:
+            # log exists and contains info
+            os.truncate(fname, 0)
+    except FileNotFoundError:
+        # no logs were found: they will be created when needed
+        print('! File not found:', fname)
+
+
+def write_log(r_info, r_settings, f_name):
+    '''
+        Logs selected data to the 404 report
+    '''
+    report_info = r_info['url'] + '\t' + r_info['pageurl'] + '\t' + \
+        r_info['code'] + '\t' + r_info['err'] + '\t' + r_info['emsg'] + '\n'
+
+    if r_info['code'] == '404':
+        can_write = True
+    elif r_info['err'] == '1' and r_settings['report_errors']:
+        can_write = True
+    elif r_settings['report_activity']:
+        can_write = True
+    else:
+        can_write = False
+
+    if can_write:
+        report_info = r_info['url'] + '\t' + r_info['pageurl'] + '\t' + \
+            r_info['code'] + '\t' + r_info['err'] + '\t' + r_info['emsg'] + '\n'
+        fin = os.open(f_name, os.O_CREAT|os.O_WRONLY|os.O_APPEND)
+        os.write(fin, str.encode(report_info))
+        os.close(fin)
 
 
 def parse_xml_links(url):
@@ -64,50 +82,6 @@ def parse_xml_links(url):
         urls.append(addr.children[0].cdata)
 
     return urls
-
-
-def log_err(data):
-    '''
-        Writes the data <dict> to
-        the errorlog
-    '''
-    if data:
-        report_info = str.encode(data['url'] + '\t' + data['pageurl'] + '\t' +
-            data['emsg'] + '\n')
-        fin = os.open('report-error.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
-        os.write(fin, report_info)
-        os.close(fin)
-    else:
-        pass
-
-
-def log_404(data):
-    '''
-        Writes the data <dict> to
-        the 404 log
-    '''
-    if data:
-        report_info = str.encode(data['url'] + '\t' + data['pageurl'] + '\t' +
-            str(data['code']) + '\n')
-        fin = os.open('report-404.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
-        os.write(fin, report_info)
-        os.close(fin)
-    else:
-        pass
-
-
-def log_activity(data):
-    '''
-        Records all activity
-    '''
-    if data:
-        report_info = str.encode(data['url'] + '\t' + data['pageurl'] + '\t' +
-            str(data['code']) + '\t' + data['emsg'] + '\n')
-        fin = os.open('activity.log', os.O_CREAT|os.O_WRONLY|os.O_APPEND)
-        os.write(fin, report_info)
-        os.close(fin)
-    else:
-        pass
 
 
 def get_urls(html_page):
@@ -160,36 +134,20 @@ def get_response(url_data):
     response_data = {
         'pageurl': url_data['page'],
         'url': url_data['link'],
-        'code': None,
-        'err': 0,
+        'code': '',
+        'err': '0',
         'emsg': ''
     }
 
     try:
         response = http.request('GET', url_data['link'])
         stat = response.status
-        response_data['code'] = stat
+        response_data['code'] = str(stat)
     except Exception as e:
-        response_data['err'] = 1
+        response_data['err'] = '1'
         response_data['emsg'] = str(e)
 
     return response_data
-
-
-def check_response(resp_info):
-    '''
-        Returns the response type
-        as a string. Only interested
-        in 404s or errors mostly.
-    '''
-    if resp_info['code'] == 404:
-        response_type = '404'
-    elif resp_info['err'] == 1:
-        response_type = 'err'
-    else:
-        response_type = 'ok'
-
-    return response_type
 
 
 def main():
@@ -205,8 +163,8 @@ def main():
         'link': ''
     }
 
-    print('=> Cleared existing logs.')
-    clear_logs(all_logs)
+    print('=> Cleared existing log.')
+    clear_log(LOG_FILENAME)
 
     print('=> Parsing xml ...')
     print('=> Getting page links ...')
@@ -232,14 +190,9 @@ def main():
                     url_data['page'] = page_url_in
                     url_data['link'] = link
                     resp_info = get_response(url_data)
-                    response_type = check_response(resp_info)
 
-                    if response_type == '404':
-                        log_404(resp_info)
-                    elif response_type == 'err':
-                        log_err(resp_info)
-                    else:
-                        pass
+                    if resp_info:
+                        write_log(resp_info, REPORT_SETTINGS, LOG_FILENAME)
             else:
                 print(page_url_in, '=> no links on the page.')
     else:

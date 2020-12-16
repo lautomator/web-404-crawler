@@ -17,7 +17,7 @@ Your xml site map structure might look soemthing like this:
 
 ```
 
-The script will write any 404 responses to the *report-404.log*. Any response errors are reported to the *report-error.log*. The *activity log* is used for development or can be configured to be used in tandem with the other logs. All logs are created when the script needs them. The logs are cleared each time the script is called.
+The script will write any 404 responses, errors, or activity to the a log. The log is cleared each time the script is called.
 
 ## Requirements
 * Python 3
@@ -27,4 +27,4 @@ The script will write any 404 responses to the *report-404.log*. Any response er
 * [untangle xml parser module](https://untangle.readthedocs.io/en/latest/)
 
 ## Setup and How to use
-Download, fork, or clone this repository. You can run this script from a server or locally. Go to the root directory: `cd` into the `web-404-crawler`. Run the script: `python3 check-urls.py <xml site map>`. The only required arg is the url of the xml sitemap.
+Download, fork, or clone this repository. Enter the url of the sitemap, the host domain, and the report options in the settings area towards the top of the script. You can run this script from a server or locally. Go to the root directory: `cd` into the `web-404-crawler`. Run the script: `python3 check-urls.py.
