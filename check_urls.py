@@ -17,9 +17,18 @@ import urllib3
 import untangle
 
 # ================== USER SETTINGS
-MAIN_SITEMAP = '' # enter sitemap url here
-HOST_DOMAIN = '' # enter site domain here without the trailing slash
+# Enter sitemap url here. Ex:
+# https://www.<mysite.com>/sitemap_index.xml
+MAIN_SITEMAP = ''
+# Enter site domain here
+# without the trailing slash.
+# Ex: https://www.<mysite.com>
+HOST_DOMAIN = ''
+# You can rename the log here
 LOG_FILENAME = 'report-404.log'
+# This script will always report 404s.
+# You can also have it report other
+# errors or always report for every link.
 REPORT_SETTINGS = {
     'report_errors': False, # will report 404s and errors
     'report_activity': False # will report everything
@@ -163,6 +172,9 @@ def main():
         'link': ''
     }
 
+    no_of_links = 0
+    current_link_no = 1
+
     print('=> Cleared existing log.')
     clear_log(LOG_FILENAME)
 
@@ -176,8 +188,10 @@ def main():
     print('=> Looking for 404s (this may take a while) ...')
 
     if url_set:
+        no_of_links = len(url_set)
         # check each url extracted from the sitemap
         for page_url_in in url_set:
+            print(current_link_no, 'of', no_of_links, 'links')
             print('checking:', page_url_in)
 
             # get any urls from the page
@@ -193,8 +207,8 @@ def main():
 
                     if resp_info:
                         write_log(resp_info, REPORT_SETTINGS, LOG_FILENAME)
-            else:
-                print(page_url_in, '=> no links on the page.')
+
+            current_link_no += 1
     else:
         print('! No urls found in this sitemap.')
         sys.exit()
