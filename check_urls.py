@@ -17,8 +17,8 @@ import urllib3
 import untangle
 
 # ================== USER SETTINGS
-MAIN_SITEMAP = 'https://www.thefire.org/post-sitemap30.xml'
-HOST_DOMAIN = 'https://thefire.org'
+MAIN_SITEMAP = '' # enter sitemap url here
+HOST_DOMAIN = '' # enter site domain here
 LOG_FILENAME = 'report-404.log'
 REPORT_SETTINGS = {
     'report_errors': False, # will report 404s and errors
