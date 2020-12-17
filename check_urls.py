@@ -30,7 +30,7 @@ LOG_FILENAME = 'report-404.log'
 # You can also have it report other
 # errors or always report for every link.
 REPORT_SETTINGS = {
-    'report_errors': False, # will report 404s and errors
+    'report_errors': False, # will report errors
     'report_activity': False # will report everything
 }
 # END USER SETTINGS ==============
@@ -53,9 +53,6 @@ def write_log(r_info, r_settings, f_name):
     '''
         Logs selected data to the 404 report
     '''
-    report_info = r_info['url'] + '\t' + r_info['pageurl'] + '\t' + \
-        r_info['code'] + '\t' + r_info['err'] + '\t' + r_info['emsg'] + '\n'
-
     if r_info['code'] == '404':
         can_write = True
     elif r_info['err'] == '1' and r_settings['report_errors']:
