@@ -33,7 +33,17 @@ REPORT_SETTINGS = {
     'report_errors': False, # will report errors
     'report_activity': False # will report everything
 }
+# verbose mode prints to stdout
+VERBOSE = True
 # END USER SETTINGS ==============
+
+
+stats = {
+    'pages crawled': 0,
+    'urls checked': 0,
+    '404s found': 0,
+    'errors': 0
+}
 
 
 def clear_log(fname):
@@ -54,8 +64,10 @@ def write_log(r_info, r_settings, f_name):
         Logs selected data to the 404 report
     '''
     if r_info['code'] == '404':
+        stats['urls checked'] += 1
         can_write = True
     elif r_info['err'] == '1' and r_settings['report_errors']:
+        stats['errors'] += 1
         can_write = True
     elif r_settings['report_activity']:
         can_write = True
@@ -170,6 +182,28 @@ def check_for_dup_link(url_to_check, list_of_urls):
 
     return is_dup
 
+def show_stats():
+    '''
+        Prints to stdout the number
+        of links checked, the number
+        of 404s found, and the number
+        of errors found.
+    '''
+    pages_crawled = stats['pages crawled']
+    urls_checked = stats['urls checked']
+    e_404_amt = stats['404s found']
+    error_amt = stats['errors']
+
+    print('========\n REPORT\n========')
+    print(pages_crawled, 'pages crawled')
+    print(urls_checked, 'urls checked')
+    print(e_404_amt, '404 errors found')
+    print(error_amt, 'http errors found')
+    print('...')
+
+    if e_404_amt or error_amt > 0:
+        print('See the report', LOG_FILENAME, 'for more info.')
+
 
 def main():
     '''
@@ -183,7 +217,6 @@ def main():
         'page': '',
         'link': ''
     }
-
     no_of_links = 0
     current_link_no = 1
     link_list = []
@@ -204,18 +237,21 @@ def main():
         no_of_links = len(url_set)
         # check each url extracted from the sitemap
         for page_url_in in url_set:
-            print(current_link_no, 'of', no_of_links, 'links')
-            print('checking:', page_url_in)
-
             # get any urls from the page
             page_links = get_urls(page_url_in)
-            print(len(page_links), 'links found\n...')
+
+            if VERBOSE:
+                print(current_link_no, 'of', no_of_links, 'links')
+                print('page url:', page_url_in)
+                print(len(page_links), 'links found\n...')
 
             if page_links:
                 # check each link on a page
                 for link in page_links:
                     if not check_for_dup_link(link, link_list):
-                        print('checking: ' + link)
+                        if VERBOSE:
+                            print(' > checking: ' + link)
+
                         url_data['page'] = page_url_in
                         url_data['link'] = link
                         resp_info = get_response(url_data)
@@ -224,15 +260,21 @@ def main():
                     if current_link_no == 1:
                         link_list.append(link)
 
+                    # report
+                    stats['urls checked'] += 1
+
                     if resp_info:
                         write_log(resp_info, REPORT_SETTINGS, LOG_FILENAME)
 
             current_link_no += 1
+
+        stats['pages crawled'] = no_of_links
     else:
         print('! No urls found in this sitemap.')
         sys.exit()
 
-    print('=> Done. See the reports for more info.')
+    print('=> Done.')
+    show_stats()
 
 
 if __name__ == '__main__':
