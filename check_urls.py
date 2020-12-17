@@ -19,7 +19,7 @@ import untangle
 # ================== USER SETTINGS
 # Enter sitemap url here. Ex:
 # https://www.<mysite.com>/sitemap_index.xml
-MAIN_SITEMAP = 'ref/sitemap-url-set.xml'
+MAIN_SITEMAP = ''
 # Enter site domain here
 # without the trailing slash.
 # Ex: https://www.<mysite.com>
