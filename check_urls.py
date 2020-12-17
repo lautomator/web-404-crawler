@@ -19,7 +19,7 @@ import untangle
 # ================== USER SETTINGS
 # Enter sitemap url here. Ex:
 # https://www.<mysite.com>/sitemap_index.xml
-MAIN_SITEMAP = ''
+MAIN_SITEMAP = 'ref/sitemap-url-set.xml'
 # Enter site domain here
 # without the trailing slash.
 # Ex: https://www.<mysite.com>
@@ -73,7 +73,7 @@ def write_log(r_info, r_settings, f_name):
 def parse_xml_links(url):
     '''
         Takes in xml site map and
-        and returns a list of urls
+        and returns a list of urls.
     '''
     urls = []
 
@@ -96,7 +96,9 @@ def get_urls(html_page):
         all of the urls from href
         attributes. Returns a list
         of urls from the page or
-        an empty list.
+        an empty list. Will not
+        include the head if BODY_ONLY
+        is set to True.
     '''
     page_links = []
 
@@ -104,11 +106,10 @@ def get_urls(html_page):
     http = urllib3.PoolManager()
     response = http.request('GET', html_page)
     page_data = response.data.decode("utf-8")
-
-    # find all href attributes and save to results
     href_pat = r'href=\".*?\"'
-    results = re.findall(href_pat, page_data)
     link = ''
+
+    results = re.findall(href_pat, page_data)
 
     # remove the href tag and quotes and
     # add protocol and host info for
@@ -155,6 +156,20 @@ def get_response(url_data):
 
     return response_data
 
+def check_for_dup_link(url_to_check, list_of_urls):
+    '''
+        Verifys the current url being
+        checked dhas not already been
+        checked by the crawler. Returns
+        True if checked or False.
+    '''
+    is_dup = False
+
+    if url_to_check in list_of_urls:
+        is_dup = True
+
+    return is_dup
+
 
 def main():
     '''
@@ -171,6 +186,7 @@ def main():
 
     no_of_links = 0
     current_link_no = 1
+    link_list = []
 
     print('=> Cleared existing log.')
     clear_log(LOG_FILENAME)
@@ -198,9 +214,15 @@ def main():
             if page_links:
                 # check each link on a page
                 for link in page_links:
-                    url_data['page'] = page_url_in
-                    url_data['link'] = link
-                    resp_info = get_response(url_data)
+                    if not check_for_dup_link(link, link_list):
+                        print('checking: ' + link)
+                        url_data['page'] = page_url_in
+                        url_data['link'] = link
+                        resp_info = get_response(url_data)
+
+                    # generates the initial link list
+                    if current_link_no == 1:
+                        link_list.append(link)
 
                     if resp_info:
                         write_log(resp_info, REPORT_SETTINGS, LOG_FILENAME)
